@@ -5,8 +5,23 @@ date: "2/20/2023"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, r error=FALSE, warning=FALSE, message=FALSE, results='hide'}
+#install.packages("data.tree")
+#install.packages("blockmodeling")
+library(multigraph)
+library(data.tree)
+library(linkcomm)
+library(tibble)
+library(concoR)
+detach("package:concoR", unload=T)
+library(ergm)
+detach(package:ergm)
+require(intergraph)
+require(igraph)
+require(blockmodeling)
+library(data.tree)
 knitr::opts_chunk$set(echo = TRUE)
+options(digits = 2)
 ```
 
 ## R Markdown
@@ -15,8 +30,44 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+```{r echo = FALSE, out.width='\\textwidth', fig.height = 6, fig.align='center'}
+# (1) Whether people seem to like one another (undirected, “POS”)
+liking <- read.csv("wiring_RDPOS.csv", header = T, row.names = 1)
+liking_g <- graph_from_adjacency_matrix(as.matrix(liking),mode = "undirected")
+plot(liking_g, names=TRUE)
+liking_adj <- get.adjacency(liking_g)
+liking_adj_matrix <- as.matrix(liking_adj)
+
+# Whether someone helped another (directed, “HLP”)
+helping <- read.csv("wiring_RDHLP.csv", header = T, row.names = 1)
+helping_g <- graph_from_adjacency_matrix(as.matrix(helping),mode = "directed")
+plot(helping_g, names=TRUE)
+helping_adj <- get.adjacency(helping_g)
+helping_adj_matrix <- as.matrix(helping_adj)
+helping_both_matrix <- rbind(helping_adj_matrix, t(helping_adj_matrix)) 
+
+# Whether people played games together and horsed around (undirected,“GAM”)
+games <- read.csv("wiring_RDGAM.csv", header = T, row.names = 1)
+games_g <- graph_from_adjacency_matrix(as.matrix(games),mode = "undirected")
+plot(games_g, names=TRUE)
+games_adj <- get.adjacency(games_g)
+games_adj_matrix <- as.matrix(games_adj)
+
+# Whether people had an antagonistic relationship (undirected,“NEG”)
+negative <- read.csv("wiring_RDNEG.csv", header = T, row.names = 1)
+negative_g <- graph_from_adjacency_matrix(as.matrix(negative),mode = "undirected")
+plot(negative_g, names=TRUE)
+negative_adj <- get.adjacency(negative_g)
+negative_A_matrix <- as.matrix(negative_adj)
+negative_adj_matrix <- (-1)*negative_A_matrix
+
+# Whether people got in arguments/conflict (undirected, “CON”)
+arguments <- read.csv("wiring_RDCON.csv", header = T, row.names = 1)
+arguments_g <- graph_from_adjacency_matrix(as.matrix(arguments),mode = "undirected")
+plot(arguments_g, names=TRUE)
+arguments_adj <- get.adjacency(arguments_g)
+arguments_A_matrix <- as.matrix(arguments_adj)
+arguments_adj_matrix <- (-1)*arguments_A_matrix
 ```
 
 ## Including Plots
