@@ -4,15 +4,19 @@ author: "Michaela Fricova"
 date: "2/20/2023"
 output: html_document
 ---
+## #3 Social Networks in the Bank Wiring Room
 This project is the 3/8 part of my mini-series on social network analysis. The goal of this series is to start with the very basics of network analysis, such as with the concepts of centrality and assortativity, and progress towards more advanced topics, including Erdős-Rényi and Configuration models, as well as Exponential family random graphs. In this third project, I analyze the **Bank Wiring Room** data set, an observational study conducted **in 1939 by F. Roethlisberger and W. Dickson at the Western Electric plant**. This data documents the network of fourteen employees: two inspectors (denoted I), three solderers (denoted S) and nine wiremen (denoted W). For the analysis, I interpreted the roles of each employee type as follows: **inspectors** regulate and manage the plant’s division, **solderers** join or mend metal materials, and **wiremen** maintain electrical equipment. The researchers collected data on the network interactions between these individuals for six different behaviors: **horseplay, arguments over open windows, antagonistic behavior generally, giving help with work tasks, trading work tasks, and friendship**. Additionally, the data was considered in an asymmetric manner, indicating a possible lack of mutuality between two actors.
 
 The data was originally gathered by Roethlisberger and Dickson in order to measure the “Hawthorne Effect,” meaning the way in which individuals alter (most typically by improving) their behavior when they know that they are being watched. At the time, the discipline of social network analysis was not nearly as established as it is now, and they did not have the computer power to conduct the kind of analyses that are now possible. For this reason, I return to this dataset from 1939 to ask new social network analysis questions, such as whether the network structures for pro-social behaviors  (horseplay, friendship, helping one another with tasks) are consistent, and whether they significantly **diverge from the network structures for anti-social behaviors** (arguments over windows) and antagonistic behavior generally. Also, it is interesting to investigate whether the **position and employment level** influence tie formation in the pro-social and anti-social networks. 
+
+## Loading the necessary packages
+
+Multiple new packages are needed in this part of the network analysis mini-series, including the blockmodeling and data tree packages. The blockmodeling package is used particularly for for identifying structural equivalence in the networks (where two nodes are exactly structurally equivalent if they have exactly the same ties to exactly the same other nodes). On the other hand, regular equivalence is 
 
 ```{r setup, r error=FALSE, warning=FALSE, message=FALSE, results='hide'}
 #install.packages("data.tree")
 #install.packages("blockmodeling")
 library(multigraph)
-library(data.tree)
 library(linkcomm)
 library(tibble)
 library(concoR)
@@ -36,57 +40,40 @@ I start by loading datasets for the five networks:
 (4) undirected network of antagonistic behavior and, finally, 
 (5) undirected network of arguments over open windows. 
 
-After creating the adjacency matrices for each of the five networks separately, I create a combined adjacency matrix. Given that the helping network has directed ties, I have to separately consider outgoing and incoming edges for this network - which also makes the combined adjacency matrix non-symmetric. Additionally, I make the ties in the anatagonistic behaviour network and in the network of arguments over open windows, negative (multiply them by -1). Finally, based on the combined adjacency matrix, I calculate the structural equivalence of nodes.
+
+## Constructing adjacency matrices for each network
+I create adjacency matrices for each of the five networks separately. Given that the helping network has directed ties, I have to separately consider outgoing and incoming edges. Additionally, I make the ties in the anatagonistic behaviour network and in the network of arguments over open windows, negative (multiply them by -1). 
 
 ```{r echo = FALSE, out.width='\\textwidth', fig.height = 6, fig.align='center'}
 # (1) Whether people seem to like one another (undirected, “POS”)
 liking <- read.csv("wiring_RDPOS.csv", header = T, row.names = 1)
 liking_g <- graph_from_adjacency_matrix(as.matrix(liking),mode = "undirected")
-plot(liking_g, 
-     names=TRUE, 
-     main = "undirected network of friendship ties",
-     layout=layout_as_tree(liking_g))
-liking_adj <- get.adjacency(liking_g)
-liking_adj_matrix <- as.matrix(liking_adj)
+liking_adj_matrix <- as.matrix(get.adjacency(liking_g))
 
 # (2) Whether someone helped another (directed, “HLP”)
 helping <- read.csv("wiring_RDHLP.csv", header = T, row.names = 1)
 helping_g <- graph_from_adjacency_matrix(as.matrix(helping),mode = "directed")
-plot(helping_g, 
-     names=TRUE, 
-     main = "undirected network of friendship ties",
-     layout=layout_as_tree(helping_g))
-helping_adj <- get.adjacency(helping_g)
-helping_adj_matrix <- as.matrix(helping_adj)
+helping_adj_matrix <- as.matrix(get.adjacency(helping_g))
 helping_both_matrix <- rbind(helping_adj_matrix, t(helping_adj_matrix)) 
 
 # (3) Whether people played games together and horsed around (undirected,“GAM”)
 games <- read.csv("wiring_RDGAM.csv", header = T, row.names = 1)
 games_g <- graph_from_adjacency_matrix(as.matrix(games),mode = "undirected")
-plot(games_g, names=TRUE)
-games_adj <- get.adjacency(games_g)
-games_adj_matrix <- as.matrix(games_adj)
+games_adj_matrix <-  as.matrix(get.adjacency(games_g))
 
 # (4) Whether people had an antagonistic relationship (undirected,“NEG”)
 negative <- read.csv("wiring_RDNEG.csv", header = T, row.names = 1)
 negative_g <- graph_from_adjacency_matrix(as.matrix(negative),mode = "undirected")
-plot(negative_g, names=TRUE)
-negative_adj <- get.adjacency(negative_g)
-negative_A_matrix <- as.matrix(negative_adj)
-negative_adj_matrix <- (-1)*negative_A_matrix
+negative_adj_matrix <- (-1)*as.matrix(get.adjacency(negative_g))
 
 # (5) Whether people got into arguments/conflict (undirected, “CON”)
 arguments <- read.csv("wiring_RDCON.csv", header = T, row.names = 1)
 arguments_g <- graph_from_adjacency_matrix(as.matrix(arguments),mode = "undirected")
-plot(arguments_g, names=TRUE)
-arguments_adj <- get.adjacency(arguments_g)
-arguments_A_matrix <- as.matrix(arguments_adj)
-arguments_adj_matrix <- (-1)*arguments_A_matrix
+arguments_adj_matrix <- (-1)*as.matrix(get.adjacency(arguments_g))
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
+## Binding the seperate adjacency metrices into one combined adjacency matrix
+Subsequently, I bind all the separate adjacency matrices together to create a combined adjacency matrix. And, based on the matrix results, I calculate the structural equivalence of nodes.
 
 ```{r}
 all_relationship_matrix <- rbind(liking_adj_matrix, helping_both_matrix, games_adj_matrix, negative_adj_matrix, arguments_adj_matrix)
@@ -96,18 +83,31 @@ all_dist <- as.dist(1 - all_corrs)
 all_dist[is.na(all_dist)] <- 2
 all_dist
 ```
+## Plotting dendrograms
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+From the resulting matrix of structural equivalences, I create a series of dendrograms, each with a different number of clusters (from 2 to 5). Put differently, using dendrograms, I identify between 2 and 5 groups of structurally equivalent nodes.
+
 ```{r}
 all_dendrogram <- hclust(all_dist)
+# 2 clusters
 plot(all_dendrogram)
 rect.hclust(all_dendrogram, k = 2)
+```
+```{r}
+# 3 clusters
 plot(all_dendrogram)
 rect.hclust(all_dendrogram, k = 3)
+```
+```{r}
+# 4 clusters
 plot(all_dendrogram)
 rect.hclust(all_dendrogram, k = 4)
+```
+```{r}
 plot(all_dendrogram)
 rect.hclust(all_dendrogram, k = 5)
+```
+```{r}
 all_matrix <- as.matrix(all_dist)
 heatmap(all_matrix, 
           denscol="black",
@@ -118,27 +118,12 @@ heatmap(all_matrix,
 partit <- cutree(all_dendrogram, k = 4)
 partit
 ```
-```{r}
-positive_relationship_matrix <- liking_adj_matrix + helping_adj_matrix + t(helping_adj_matrix) + games_adj_matrix
-liking_pos <- graph_from_adjacency_matrix(positive_relationship_matrix,mode = "undirected")
-plot(liking_pos, 
-  names=TRUE,
-  vertex.color= cutree(all_dendrogram, k = 4),
-  main = "Positive Relationships at Hawthorne")
 
-negative_relationship_matrix <- negative_A_matrix + arguments_A_matrix
-disliking_pos <- graph_from_adjacency_matrix(negative_relationship_matrix, mode = "undirected")
-plot(disliking_pos, 
-     names=TRUE,
-     vertex.color= cutree(all_dendrogram, k = 4),
-     main = "Negative Relationships at Hawthorne")
+In my final (aka selected) dendrogram model, I identify 4 blocks in the network. Why? Firstly, having 4 blocks allows me to account for the 2 main cliques that were reported in Roethlisberger & Dickson (1939). And, secondly, it allows me to account for the 4 workers who were members of neither group and who generally tended to  keep to themselves, according to the records by Roethlisberger & Dickson (1939).
 
-```
-After some deliberation, I decided to identify 4 blocks in the network. Why? Firstly, having 4 blocks allowed me to account for the 2 main cliques that were reported in Roethlisberger & Dickson (1939). And, secondly, it allowed me to account for the 4 workers who were members of neither group and who generally tended to  keep to themselves according to the records by Roethlisberger & Dickson (1939).
+You might be asking, why did I not just pick 3 blocks then - one for each of the two cliques and another one for the more isolated individuals? I originally tried just that but the dendrogram identified S2 as a separate block before identifying the other clique-excluded individuals in the block (when k=3). To understand this assortment, I read some notes by Roethlisberger & Dickson (1939) and they reported that Solderer 2 (S2) had a speech handicap and, in their view, S2 generally had even fewer relationship ties than the other excluded workers at the factory.
 
-You might be asking, why did I not just pick 3 blocks then - one for each of the two cliques and another one for the more isolated individuals? I originally tried to do that but the dendrogram identified S2 as a separate block before identifying the other clique-excluded individuals in the block (when k=3). To understand this assortment, I read some notes by Roethlisberger & Dickson (1939) and they reported that Solderer 2 had a speech handicap and, in their view, S2 generally had even fewer relationship ties than the other excluded workers at the factory.
-
-Generally, my findings align with Figure 10 in Roethlisberger & Dickson (1939). Both their figure and my figure postulate 2 cliques - clique A consisting of workers W1, W3, W4, S1 and I1 and clique B consisting of W6, W7, W8, W9 and S4. In the Positive Relationships graph, we see that the 5 workers W1, W3, W4, S1 and I1 are labelled as structurally equivalent in orange. And, likewise, W6, W7, W8, W9 and S4 are members of the same block in green. In my analysis, W2, W5, an I3 are excluded from the 2 cliques (in blue) and are structurally equivalent. And, finally, S2 has its unique position in the network.
+Generally, my findings align with Figure 10 in Roethlisberger & Dickson (1939). Both their figure and my figure postulate 2 cliques - clique A consisting of workers W1, W3, W4, S1, I1 and clique B consisting of W6, W7, W8, W9, S4. In the Positive Relationships graph, we see that the 5 workers W1, W3, W4, S1 and I1 are labelled as structurally equivalent in orange. And, likewise, W6, W7, W8, W9 and S4 are members of the same block in green. In my analysis, W2, W5, an I3 are excluded from the 2 cliques (in blue) and are structurally equivalent. And, finally, S2 has its unique position in the network.
 
 ```{r}
 hawthorne <- Node$new("Hawthorne Director")
