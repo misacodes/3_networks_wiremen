@@ -13,7 +13,7 @@ The data was originally gathered by Roethlisberger and Dickson in order to measu
 
 Multiple new packages are needed in this part of the network analysis mini-series, including the blockmodeling and data tree packages. The blockmodeling package is used particularly for for identifying structural equivalence in the networks (where two nodes are exactly structurally equivalent if they have exactly the same ties to exactly the same other nodes). On the other hand, regular equivalence is 
 
-```{r setup, r error=FALSE, warning=FALSE, message=FALSE, results='hide'}
+```{r setup, error=FALSE, warning=FALSE, message=FALSE}
 #install.packages("data.tree")
 #install.packages("blockmodeling")
 library(multigraph)
@@ -70,12 +70,18 @@ positive_relationship_matrix <- liking_adj_matrix + helping_adj_matrix + t(helpi
 liking_pos <- graph_from_adjacency_matrix(positive_relationship_matrix,mode = "undirected")
 
 library(RColorBrewer)
-coul <- brewer.pal(nlevels(as.factor(cutree(all_dendrogram, k = 4))), "Set3")
-
+four_clusters <- cutree(all_dendrogram, k = 4)
+coul <- brewer.pal(nlevels(four_clusters), "Set3")
+all_relationship_matrix <- rbind(liking_adj_matrix, helping_both_matrix, games_adj_matrix, negative_adj_matrix, arguments_adj_matrix)
+all_relationship_matrix
+all_corrs <- cor(all_relationship_matrix)
+all_dist <- as.dist(1 - all_corrs)
+#all_dist[is.na(all_dist)] <- 2
 all_dendrogram <- hclust(all_dist)
+four_clusters <- cutree(all_dendrogram, k = 4)
 
 # Map the color to cylinders
-my_color <- coul[as.numeric(as.factor(cutree(all_dendrogram, k = 4)))]
+my_color <- coul[as.numeric(as.factor(four_clusters))]
 
 # plot
 par(bg="grey13", mar=c(0,0,0,0))
