@@ -77,8 +77,57 @@ arguments_adj_matrix <- (-1)*arguments_A_matrix
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+all_relationship_matrix <- rbind(liking_adj_matrix, helping_both_matrix, games_adj_matrix, negative_adj_matrix, arguments_adj_matrix)
+all_relationship_matrix
+all_corrs <- cor(all_relationship_matrix)
+all_dist <- as.dist(1 - all_corrs)
+all_dist[is.na(all_dist)] <- 2
+all_dist
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+all_dendrogram <- hclust(all_dist)
+plot(all_dendrogram)
+rect.hclust(all_dendrogram, k = 2)
+plot(all_dendrogram)
+rect.hclust(all_dendrogram, k = 3)
+plot(all_dendrogram)
+rect.hclust(all_dendrogram, k = 4)
+plot(all_dendrogram)
+rect.hclust(all_dendrogram, k = 5)
+all_matrix <- as.matrix(all_dist)
+heatmap(all_matrix, 
+          denscol="black",
+          trace = "none",
+          margins =c(6,4),
+          revC = TRUE)
+
+partit <- cutree(all_dendrogram, k = 4)
+partit
+```
+```{r}
+positive_relationship_matrix <- liking_adj_matrix + helping_adj_matrix + t(helping_adj_matrix) + games_adj_matrix
+liking_pos <- graph_from_adjacency_matrix(positive_relationship_matrix,mode = "undirected")
+plot(liking_pos, 
+  names=TRUE,
+  vertex.color= cutree(all_dendrogram, k = 4),
+  main = "Positive Relationships at Hawthorne")
+
+negative_relationship_matrix <- negative_A_matrix + arguments_A_matrix
+disliking_pos <- graph_from_adjacency_matrix(negative_relationship_matrix, mode = "undirected")
+plot(disliking_pos, 
+     names=TRUE,
+     vertex.color= cutree(all_dendrogram, k = 4),
+     main = "Negative Relationships at Hawthorne")
+
+```
+After some deliberation, I decided to identify 4 blocks in the network. Why? Firstly, having 4 blocks allowed me to account for the 2 main cliques that were reported in Roethlisberger & Dickson (1939). And, secondly, it allowed me to account for the 4 workers who were members of neither group and who generally tended to  keep to themselves accoring to the records by Roethlisberger & Dickson (1939).
+
+You might be asking, why didnt I just pick 3 blocks then - 2x1 for each clique and 1 for the more isolated individuals? I originally tried to do that but the dendrogram identified S2 as a separate block before identifying the other clique-excluded individuals in the block (when k=3). To understand this assortment, I read some notes by Roethlisberger & Dickson (1939) and they reported that Solderer 2 had a speech handicap and, in their view, S2 generally had even fewer relationship ties than the other excluded workers at the factory.
+
+Generally, my findings align with Figure 10 in Roethlisberger & Dickson (1939). The figure postulates 2 cliques - clique A consisting of workers W1, W3, W4, S1 and I1 and clique B consisting of W6, W7, W8, W9 and S4. This is exactly consistent with my findings. In the Positive Relationships graph, we see that the 5 workers W1, W3, W4, S1 and I1 are labelled as structurally equivalent in orange. And, likewise, W6, W7, W8, W9 and S4 are members of the same block in green. In my analysis, W2, W5, an I3 are excluded from the 2 cliques (in blue) and are structurally equivalent. And, finally, S2 is in a unique position in the network.
+
+
+
