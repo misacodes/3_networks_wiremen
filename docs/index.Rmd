@@ -11,11 +11,9 @@ The data was originally gathered by Roethlisberger and Dickson in order to measu
 
 ### Loading the necessary packages
 
-Multiple new packages are needed in this part of the network analysis mini-series, including the blockmodeling and data tree packages. The blockmodeling package is used particularly for for identifying structural equivalence in the networks (where two nodes are exactly structurally equivalent if they have exactly the same ties to exactly the same other nodes). On the other hand, regular equivalence is 
+Multiple new packages are needed in this part of the network analysis mini-series. The igraph and integraph packages are used for baseline network graphics, whereas the multigraph package enables us to graph complex network structures where there can be multiple edges between a given pair of nodes. The linkcomm package identifies separate communities within a given network. Further, the concoR and blockmodeling packages are used  for identifying structural equivalence in the networks. What is structural equivalence? Two nodes are exactly structurally equivalent if they have exactly the same ties to exactly the same other nodes. But this is quite a strong concept. That is why, we usually look for structurally similar cluster (as opposed to structurally equivalent nodes) in the network. To aid this identification of structurally similar clusters, we also use the data-tree package, which hierarchically clusters the network.
 
 ```{r setup, error=FALSE, warning=FALSE, message=FALSE}
-#install.packages("data.tree")
-#install.packages("blockmodeling")
 library(multigraph)
 library(linkcomm)
 library(tibble)
@@ -27,12 +25,14 @@ require(intergraph)
 require(igraph)
 require(blockmodeling)
 library(data.tree)
+library(RColorBrewer)
 knitr::opts_chunk$set(echo = TRUE)
 options(digits = 2)
 ```
 
 ### Loading the datasets and generating networks
 I start by loading datasets for the five networks:  
+
 (1) undirected network of friendship ties, 
 
 (2) directed network of help and pro-social behaviour, 
@@ -80,7 +80,6 @@ positive_relationship_matrix <- liking_adj_matrix + helping_adj_matrix + t(helpi
 liking_pos <- graph_from_adjacency_matrix(positive_relationship_matrix,mode = "undirected")
 
 # Positive relationships dendrogram
-library(RColorBrewer)
 all_relationship_matrix <- rbind(liking_adj_matrix, helping_both_matrix, games_adj_matrix, negative_adj_matrix, arguments_adj_matrix)
 all_corrs <- cor(all_relationship_matrix)
 all_dist <- as.dist(1 - all_corrs)
@@ -126,7 +125,7 @@ text(0,0.3,"Negative Relationships at Hawthorne",col="white", cex=1.25)
 ### Constructing adjacency matrices for each network
 I create adjacency matrices for each of the five networks separately. Given that the helping network has directed ties, I have to separately consider outgoing and incoming edges. Additionally, I make the ties in the anatagonistic behaviour network and in the network of arguments over open windows, negative (multiply them by -1). 
 
-```{r echo = FALSE, out.width='\\textwidth', fig.height = 6, fig.align='center'}
+```{r}
 # (1) Whether people seem to like one another (undirected, “POS”)
 liking <- read.csv("wiring_RDPOS.csv", header = T, row.names = 1)
 liking_g <- graph_from_adjacency_matrix(as.matrix(liking),mode = "undirected")

@@ -396,14 +396,20 @@ in the pro-social and anti-social networks.</p>
 <div id="loading-the-necessary-packages" class="section level3">
 <h3>Loading the necessary packages</h3>
 <p>Multiple new packages are needed in this part of the network analysis
-mini-series, including the blockmodeling and data tree packages. The
-blockmodeling package is used particularly for for identifying
-structural equivalence in the networks (where two nodes are exactly
+mini-series. The igraph and integraph packages are used for baseline
+network graphics, whereas the multigraph package enables us to graph
+complex network structures where there can be multiple edges between a
+given pair of nodes. The linkcomm package identifies separate
+communities within a given network. Further, the concoR and
+blockmodeling packages are used for identifying structural equivalence
+in the networks. What is structural equivalence? Two nodes are exactly
 structurally equivalent if they have exactly the same ties to exactly
-the same other nodes). On the other hand, regular equivalence is</p>
-<pre class="r"><code>#install.packages(&quot;data.tree&quot;)
-#install.packages(&quot;blockmodeling&quot;)
-library(multigraph)
+the same other nodes. But this is quite a strong concept. That is why,
+we usually look for structurally similar cluster (as opposed to
+structurally equivalent nodes) in the network. To aid this
+identification of structurally similar clusters, we also use the
+data-tree package, which hierarchically clusters the network.</p>
+<pre class="r"><code>library(multigraph)
 library(linkcomm)
 library(tibble)
 library(concoR)
@@ -414,14 +420,15 @@ require(intergraph)
 require(igraph)
 require(blockmodeling)
 library(data.tree)
+library(RColorBrewer)
 knitr::opts_chunk$set(echo = TRUE)
 options(digits = 2)</code></pre>
 </div>
 <div id="loading-the-datasets-and-generating-networks" class="section level3">
 <h3>Loading the datasets and generating networks</h3>
-<p>I start by loading datasets for the five networks:<br />
-(1) undirected network of friendship ties,</p>
-<ol start="2" style="list-style-type: decimal">
+<p>I start by loading datasets for the five networks:</p>
+<ol style="list-style-type: decimal">
+<li><p>undirected network of friendship ties,</p></li>
 <li><p>directed network of help and pro-social behaviour,</p></li>
 <li><p>undirected games network,</p></li>
 <li><p>undirected network of antagonistic behavior and,
@@ -437,6 +444,31 @@ Given that the helping network has directed ties, I have to separately
 consider outgoing and incoming edges. Additionally, I make the ties in
 the anatagonistic behaviour network and in the network of arguments over
 open windows, negative (multiply them by -1).</p>
+<pre class="r"><code># (1) Whether people seem to like one another (undirected, “POS”)
+liking &lt;- read.csv(&quot;wiring_RDPOS.csv&quot;, header = T, row.names = 1)
+liking_g &lt;- graph_from_adjacency_matrix(as.matrix(liking),mode = &quot;undirected&quot;)
+liking_adj_matrix &lt;- as.matrix(get.adjacency(liking_g))
+
+# (2) Whether someone helped another (directed, “HLP”)
+helping &lt;- read.csv(&quot;wiring_RDHLP.csv&quot;, header = T, row.names = 1)
+helping_g &lt;- graph_from_adjacency_matrix(as.matrix(helping),mode = &quot;directed&quot;)
+helping_adj_matrix &lt;- as.matrix(get.adjacency(helping_g))
+helping_both_matrix &lt;- rbind(helping_adj_matrix, t(helping_adj_matrix)) 
+
+# (3) Whether people played games together and horsed around (undirected,“GAM”)
+games &lt;- read.csv(&quot;wiring_RDGAM.csv&quot;, header = T, row.names = 1)
+games_g &lt;- graph_from_adjacency_matrix(as.matrix(games),mode = &quot;undirected&quot;)
+games_adj_matrix &lt;-  as.matrix(get.adjacency(games_g))
+
+# (4) Whether people had an antagonistic relationship (undirected,“NEG”)
+negative &lt;- read.csv(&quot;wiring_RDNEG.csv&quot;, header = T, row.names = 1)
+negative_g &lt;- graph_from_adjacency_matrix(as.matrix(negative),mode = &quot;undirected&quot;)
+negative_adj_matrix &lt;- (-1)*as.matrix(get.adjacency(negative_g))
+
+# (5) Whether people got into arguments/conflict (undirected, “CON”)
+arguments &lt;- read.csv(&quot;wiring_RDCON.csv&quot;, header = T, row.names = 1)
+arguments_g &lt;- graph_from_adjacency_matrix(as.matrix(arguments),mode = &quot;undirected&quot;)
+arguments_adj_matrix &lt;- (-1)*as.matrix(get.adjacency(arguments_g))</code></pre>
 </div>
 <div id="binding-the-seperate-adjacency-metrices-into-one-combined-adjacency-matrix" class="section level3">
 <h3>Binding the seperate adjacency metrices into one combined adjacency
